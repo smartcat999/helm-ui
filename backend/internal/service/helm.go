@@ -196,6 +196,7 @@ func (s *HelmService) RenderChart(name, version string, values map[string]interf
 				fullPath := fmt.Sprintf("%s/%s", chart.Metadata.Name, selectedFile)
 				if strings.Contains(manifest, fmt.Sprintf("# Source: %s", fullPath)) {
 					filteredManifests = append(filteredManifests, manifest)
+					break
 				}
 			}
 		}
