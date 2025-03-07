@@ -73,18 +73,36 @@ func (h *Handler) GetChartValues(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"values": values})
 }
 
+// RenderRequest 定义渲染请求的结构
+type RenderRequest struct {
+	Values    map[string]interface{} `json:"values"`
+	Name      string                 `json:"name"`
+	Namespace string                 `json:"namespace"`
+}
+
 // RenderChart 渲染 Chart
 func (h *Handler) RenderChart(c *gin.Context) {
 	name := c.Param("name")
 	version := c.Param("version")
 
-	var values map[string]interface{}
-	if err := c.BindJSON(&values); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid values format"})
+	var req RenderRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	result, err := h.helmService.RenderChart(name, version, values)
+	// 如果没有提供 namespace，使用 default
+	if req.Namespace == "" {
+		req.Namespace = "default"
+	}
+
+	// 如果没有提供 name，返回错误
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Release name is required"})
+		return
+	}
+
+	result, err := h.helmService.RenderChart(name, version, req.Values, req.Name, req.Namespace)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

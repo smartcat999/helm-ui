@@ -9,7 +9,9 @@ import {
   message, 
   Select,
   Space,
-  Spin
+  Spin,
+  Input,
+  Form
 } from 'antd';
 import { 
   UploadOutlined, 
@@ -29,6 +31,11 @@ interface ChartOption {
   fileName: string;
 }
 
+interface RenderOptions {
+  name?: string;
+  namespace?: string;
+}
+
 const Home: React.FC = () => {
   const [charts, setCharts] = useState<ChartOption[]>([]);
   const [selectedChart, setSelectedChart] = useState<string>('');
@@ -36,6 +43,10 @@ const Home: React.FC = () => {
   const [values, setValues] = useState<string>(yaml.stringify({}, { indent: 2 }));
   const [renderResult, setRenderResult] = useState<RenderResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [renderOptions, setRenderOptions] = useState<RenderOptions>({
+    name: '',
+    namespace: 'default'
+  });
   const editorRef = useRef<any>(null);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -126,7 +137,7 @@ const Home: React.FC = () => {
     try {
       setLoading(true);
       const parsedValues = yaml.parse(values || '{}');
-      const result = await api.renderChart(selectedChart, selectedVersion, parsedValues);
+      const result = await api.renderChart(selectedChart, selectedVersion, parsedValues, renderOptions);
       setRenderResult(result);
     } catch (error) {
       message.error('Failed to render chart');
@@ -152,6 +163,14 @@ const Home: React.FC = () => {
   const handleChartChange = (chartName: string) => {
     setSelectedChart(chartName);
     setSelectedVersion('');
+  };
+
+  // 处理渲染选项变更
+  const handleRenderOptionsChange = (field: keyof RenderOptions, value: string) => {
+    setRenderOptions(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   // 初始加载
@@ -212,10 +231,26 @@ const Home: React.FC = () => {
                   <Option key={version} value={version}>{version}</Option>
                 ))}
               </Select>
+              <Form layout="vertical" style={{ width: '100%' }}>
+                <Form.Item label="Release Name" required>
+                  <Input
+                    placeholder="Enter release name"
+                    value={renderOptions.name}
+                    onChange={(e) => handleRenderOptionsChange('name', e.target.value)}
+                  />
+                </Form.Item>
+                <Form.Item label="Namespace">
+                  <Input
+                    placeholder="Enter namespace"
+                    value={renderOptions.namespace}
+                    onChange={(e) => handleRenderOptionsChange('namespace', e.target.value)}
+                  />
+                </Form.Item>
+              </Form>
               <Button 
                 type="primary" 
                 onClick={handleRender}
-                disabled={!selectedChart || !selectedVersion}
+                disabled={!selectedChart || !selectedVersion || !renderOptions.name}
                 block
               >
                 Render

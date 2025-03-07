@@ -97,7 +97,7 @@ func (s *HelmService) GetChartValues(name, version string) (map[string]interface
 }
 
 // RenderChart 渲染 Chart
-func (s *HelmService) RenderChart(name, version string, values map[string]interface{}) (map[string]string, error) {
+func (s *HelmService) RenderChart(name, version string, values map[string]interface{}, releaseName, namespace string) (map[string]string, error) {
 	chartPath := filepath.Join(s.chartsDir, fmt.Sprintf("%s-%s.tgz", name, version))
 
 	// 加载 Chart
@@ -108,14 +108,15 @@ func (s *HelmService) RenderChart(name, version string, values map[string]interf
 
 	// 创建 action 配置
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(s.settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), nil); err != nil {
+	if err := actionConfig.Init(s.settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), nil); err != nil {
 		return nil, fmt.Errorf("failed to init action config: %w", err)
 	}
 
 	// 创建安装动作
 	install := action.NewInstall(actionConfig)
 	install.DryRun = true
-	install.ReleaseName = "test-release"
+	install.ReleaseName = releaseName
+	install.Namespace = namespace
 	install.Replace = true
 	install.ClientOnly = true
 

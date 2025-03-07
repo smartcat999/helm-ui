@@ -17,6 +17,11 @@ export interface ChartInfo {
   version: string;
 }
 
+export interface RenderOptions {
+  name?: string;
+  namespace?: string;
+}
+
 // 从文件名解析 Chart 信息
 const parseChartFileName = (fileName: string): ChartInfo => {
   // 移除 .tgz 扩展名
@@ -60,10 +65,19 @@ export const api = {
   },
 
   // 渲染 Chart
-  renderChart: async (chartName: string, version: string, values: ChartValues): Promise<RenderResult> => {
+  renderChart: async (
+    chartName: string, 
+    version: string, 
+    values: ChartValues,
+    options: RenderOptions
+  ): Promise<RenderResult> => {
     const response = await axios.post(
       `${API_BASE_URL}/charts/${chartName}/${version}/render`,
-      values
+      {
+        values,
+        name: options.name,
+        namespace: options.namespace
+      }
     );
     return response.data;
   },
