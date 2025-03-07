@@ -46,6 +46,33 @@ declare global {
   }
 }
 
+const editorContainerStyle = {
+  height: '400px',
+  width: '100%',
+  border: '1px solid #d1d5db',
+  borderRadius: '4px',
+  position: 'relative' as const,
+  overflow: 'hidden',
+  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+};
+
+const cardStyle = {
+  height: 'auto',
+  minHeight: '400px',
+  width: '100%',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+};
+
+const cardBodyStyle = {
+  padding: '12px',
+  width: '100%'
+};
+
+const cardHeadStyle = {
+  borderBottom: '1px solid #e8e8e8',
+  fontWeight: 500
+};
+
 const Home: React.FC = () => {
   const [charts, setCharts] = useState<ChartOption[]>([]);
   const [selectedChart, setSelectedChart] = useState<string>('');
@@ -404,33 +431,15 @@ const Home: React.FC = () => {
               <Card 
                 title="Values" 
                 style={{ 
-                  marginBottom: 24,
-                  height: 'auto',
-                  minHeight: '400px',
-                  width: '100%',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  ...cardStyle,
+                  marginBottom: 24
                 }}
-                bodyStyle={{
-                  padding: '12px',
-                  height: 'calc(100% - 57px)',  // 57px is the height of card header
-                  width: '100%'
-                }}
-                headStyle={{
-                  borderBottom: '1px solid #e8e8e8',
-                  fontWeight: 500
-                }}
+                bodyStyle={cardBodyStyle}
+                headStyle={cardHeadStyle}
               >
                 <div 
                   ref={valuesEditorContainerRef}
-                  style={{ 
-                    height: '400px',
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
-                  }}
+                  style={editorContainerStyle}
                 >
                   <Editor
                     language="yaml"
@@ -439,39 +448,8 @@ const Home: React.FC = () => {
                     onChange={(value) => setValues(value || yaml.stringify({}, { indent: 2 }))}
                     onMount={(editor, monaco) => {
                       handleEditorDidMount(editor, monaco, valuesEditorContainerRef, 'values');
-                      // 移除编辑器的焦点边框
-                      const editorElement = editor.getDomNode();
-                      if (editorElement) {
-                        editorElement.style.outline = 'none';
-                        editorElement.style.border = 'none';
-                      }
                     }}
-                    options={{
-                      ...editorOptions,
-                      theme: 'vs-light',
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                      fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
-                      renderLineHighlight: 'none',
-                      scrollbar: {
-                        vertical: 'visible',
-                        horizontal: 'visible',
-                        verticalScrollbarSize: 12,
-                        horizontalScrollbarSize: 12,
-                        useShadows: false
-                      },
-                      overviewRulerBorder: false,
-                      hideCursorInOverviewRuler: true,
-                      guides: {
-                        indentation: false
-                      },
-                      renderWhitespace: "none",
-                      glyphMargin: false,
-                      folding: false,
-                      lineDecorationsWidth: 0,
-                      lineNumbersMinChars: 0,
-                      minimap: { enabled: false }
-                    }}
+                    options={editorOptions}
                     height="100%"
                   />
                 </div>
@@ -507,32 +485,18 @@ const Home: React.FC = () => {
               {renderResult && (
                 <Card 
                   title="Rendered Resources" 
-                  style={{ 
-                    marginTop: '24px',
-                    height: 'auto',
-                    minHeight: '400px',
-                    width: '100%',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  style={{
+                    ...cardStyle,
+                    marginTop: '24px'
                   }}
-                  bodyStyle={{
-                    padding: '12px',
-                    width: '100%'
-                  }}
-                  headStyle={{
-                    borderBottom: '1px solid #e8e8e8',
-                    fontWeight: 500
-                  }}
+                  bodyStyle={cardBodyStyle}
+                  headStyle={cardHeadStyle}
                 >
                   <div 
                     ref={renderedEditorContainerRef}
-                    style={{ 
-                      height: '600px',
-                      width: '100%',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                    style={{
+                      ...editorContainerStyle,
+                      height: '600px'
                     }}
                   >
                     <Editor
