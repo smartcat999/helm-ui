@@ -9,6 +9,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"sigs.k8s.io/yaml"
 )
@@ -16,6 +17,7 @@ import (
 // HelmService 处理 Helm 相关操作
 type HelmService struct {
 	chartsDir string
+	tempDir   string
 	settings  *cli.EnvSettings
 }
 
@@ -23,8 +25,65 @@ type HelmService struct {
 func NewHelmService() *HelmService {
 	return &HelmService{
 		chartsDir: "../charts",
+		tempDir:   "../temp",
 		settings:  cli.New(),
 	}
+}
+
+// PackageChart 将 Chart 目录打包成 tgz 文件
+func (s *HelmService) PackageChart(chartDir string) (string, error) {
+	// 加载 Chart
+	chart, err := loader.Load(chartDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to load chart: %w", err)
+	}
+
+	// 确保临时目录存在
+	if err := os.MkdirAll(s.tempDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
+	// 生成打包后的文件名
+	packagedFileName := fmt.Sprintf("%s-%s.tgz", chart.Metadata.Name, chart.Metadata.Version)
+	packagedFilePath := filepath.Join(s.tempDir, packagedFileName)
+
+	// 打包 Chart
+	if _, err := chartutil.Save(chart, s.tempDir); err != nil {
+		return "", fmt.Errorf("failed to package chart: %w", err)
+	}
+
+	return packagedFilePath, nil
+}
+
+// UploadChartDir 上传并打包 Chart 目录
+func (s *HelmService) UploadChartDir(chartDir string) error {
+	// 打包 Chart
+	packagedFilePath, err := s.PackageChart(chartDir)
+	if err != nil {
+		return err
+	}
+
+	// 读取打包后的文件
+	chartFile, err := os.Open(packagedFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open packaged chart: %w", err)
+	}
+	defer chartFile.Close()
+
+	// 获取文件名
+	fileName := filepath.Base(packagedFilePath)
+
+	// 上传到 charts 目录
+	if err := s.UploadChart(chartFile, fileName); err != nil {
+		return err
+	}
+
+	// 清理临时文件
+	if err := os.Remove(packagedFilePath); err != nil {
+		return fmt.Errorf("failed to clean up temporary file: %w", err)
+	}
+
+	return nil
 }
 
 // UploadChart 上传 Helm Chart

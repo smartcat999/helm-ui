@@ -1,7 +1,11 @@
 package api
 
 import (
+	"fmt"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/smartcat999/helm-ui/internal/service"
@@ -109,4 +113,66 @@ func (h *Handler) RenderChart(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"files": result})
+}
+
+// UploadChartDir 处理 Chart 目录上传
+func (h *Handler) UploadChartDir(c *gin.Context) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
+		return
+	}
+
+	// 创建临时目录
+	tempDir, err := os.MkdirTemp("", "chart-*")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temporary directory"})
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	// 获取所有上传的文件
+	files := form.File["chart"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No files uploaded"})
+		return
+	}
+
+	// 处理上传的文件
+	for _, file := range files {
+		// 从 Content-Disposition header 获取完整的文件路径
+		_, params, err := mime.ParseMediaType(file.Header.Get("Content-Disposition"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid Content-Disposition header for file: %v", err)})
+			return
+		}
+
+		relativePath := params["filename"]
+		if relativePath == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "File path is missing in Content-Disposition header"})
+			return
+		}
+
+		// 创建目标目录
+		targetPath := filepath.Join(tempDir, relativePath)
+		targetDir := filepath.Dir(targetPath)
+		if err := os.MkdirAll(targetDir, 0755); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create directory for %s", relativePath)})
+			return
+		}
+
+		// 保存文件
+		if err := c.SaveUploadedFile(file, targetPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save file %s", relativePath)})
+			return
+		}
+	}
+
+	// 打包并上传 Chart
+	if err := h.helmService.UploadChartDir(tempDir); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Chart directory uploaded and packaged successfully"})
 }

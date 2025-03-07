@@ -2,6 +2,11 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
+export interface FileWithPath {
+  file: File;
+  path: string;
+}
+
 export interface ChartValues {
   [key: string]: any;
 }
@@ -80,5 +85,27 @@ export const api = {
       }
     );
     return response.data;
+  },
+
+  // 上传 Chart 目录
+  uploadChartDir: async (files: FileWithPath[]): Promise<void> => {
+    const formData = new FormData();
+    
+    // 添加所有文件，使用 chart 作为字段名
+    files.forEach(({ file, path }) => {
+      formData.append('chart', file, path);
+    });
+
+    const response = await axios.post(`${API_BASE_URL}/charts/dir`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      // 添加超时设置，因为上传可能需要较长时间
+      timeout: 30000
+    });
+    
+    if (response.status !== 200) {
+      throw new Error('Failed to upload chart directory');
+    }
   },
 }; 

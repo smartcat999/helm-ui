@@ -33,6 +33,7 @@ func main() {
 
 	// API 路由
 	r.POST("/api/charts", handler.UploadChart)
+	r.POST("/api/charts/dir", handler.UploadChartDir)
 	r.GET("/api/charts", handler.ListCharts)
 	r.GET("/api/charts/:name/versions", handler.ListChartVersions)
 	r.POST("/api/charts/:name/:version/render", handler.RenderChart)
