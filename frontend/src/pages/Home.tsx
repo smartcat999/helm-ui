@@ -12,7 +12,8 @@ import {
   Spin,
   Input,
   Form,
-  Tooltip
+  Tooltip,
+  Alert
 } from 'antd';
 import { 
   UploadOutlined, 
@@ -52,6 +53,7 @@ const Home: React.FC = () => {
   const [values, setValues] = useState<string>(yaml.stringify({}, { indent: 2 }));
   const [renderResult, setRenderResult] = useState<RenderResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const [renderOptions, setRenderOptions] = useState<RenderOptions>({
     name: '',
     namespace: 'default'
@@ -184,12 +186,15 @@ const Home: React.FC = () => {
 
     try {
       setLoading(true);
+      setRenderError(null);
       const parsedValues = yaml.parse(values || '{}');
       const result = await api.renderChart(selectedChart, selectedVersion, parsedValues, renderOptions);
       setRenderResult(result);
-    } catch (error) {
-      message.error('Failed to render chart');
+    } catch (error: any) {
       setRenderResult(null);
+      // 从错误响应中提取错误信息
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to render chart';
+      setRenderError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -393,7 +398,7 @@ const Home: React.FC = () => {
             </Space>
           </div>
         </Sider>
-        <Layout style={{ padding: '24px' }}>
+        <Layout style={{ padding: '24px', background: '#f5f5f5' }}>
           <Content style={{ maxWidth: '100%', overflow: 'auto' }}>
             <Spin spinning={loading}>
               <Card 
@@ -402,12 +407,17 @@ const Home: React.FC = () => {
                   marginBottom: 24,
                   height: 'auto',
                   minHeight: '400px',
-                  width: '100%'
+                  width: '100%',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                 }}
                 bodyStyle={{
                   padding: '12px',
                   height: 'calc(100% - 57px)',  // 57px is the height of card header
                   width: '100%'
+                }}
+                headStyle={{
+                  borderBottom: '1px solid #e8e8e8',
+                  fontWeight: 500
                 }}
               >
                 <div 
@@ -415,23 +425,85 @@ const Home: React.FC = () => {
                   style={{ 
                     height: '400px',
                     width: '100%',
-                    border: '1px solid #d9d9d9',
-                    borderRadius: '2px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
                   }}
                 >
                   <Editor
                     language="yaml"
-                    theme="light"
+                    theme="vs-light"
                     value={values}
                     onChange={(value) => setValues(value || yaml.stringify({}, { indent: 2 }))}
-                    onMount={(editor, monaco) => handleEditorDidMount(editor, monaco, valuesEditorContainerRef, 'values')}
-                    options={editorOptions}
+                    onMount={(editor, monaco) => {
+                      handleEditorDidMount(editor, monaco, valuesEditorContainerRef, 'values');
+                      // 移除编辑器的焦点边框
+                      const editorElement = editor.getDomNode();
+                      if (editorElement) {
+                        editorElement.style.outline = 'none';
+                        editorElement.style.border = 'none';
+                      }
+                    }}
+                    options={{
+                      ...editorOptions,
+                      theme: 'vs-light',
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                      renderLineHighlight: 'none',
+                      scrollbar: {
+                        vertical: 'visible',
+                        horizontal: 'visible',
+                        verticalScrollbarSize: 12,
+                        horizontalScrollbarSize: 12,
+                        useShadows: false
+                      },
+                      overviewRulerBorder: false,
+                      hideCursorInOverviewRuler: true,
+                      guides: {
+                        indentation: false
+                      },
+                      renderWhitespace: "none",
+                      glyphMargin: false,
+                      folding: false,
+                      lineDecorationsWidth: 0,
+                      lineNumbersMinChars: 0,
+                      minimap: { enabled: false }
+                    }}
                     height="100%"
                   />
                 </div>
               </Card>
+              {renderError && (
+                <Alert
+                  message="Render Error"
+                  description={
+                    <div style={{ 
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                      fontSize: '13px',
+                      lineHeight: '1.5',
+                      padding: '8px',
+                      backgroundColor: 'rgba(255,0,0,0.02)',
+                      border: '1px solid rgba(255,0,0,0.1)',
+                      borderRadius: '4px'
+                    }}>
+                      {renderError}
+                    </div>
+                  }
+                  type="error"
+                  showIcon
+                  style={{ 
+                    marginBottom: 24,
+                    border: '1px solid #ffccc7',
+                    borderRadius: '4px'
+                  }}
+                  closable
+                  onClose={() => setRenderError(null)}
+                />
+              )}
               {renderResult && (
                 <Card 
                   title="Rendered Resources" 
@@ -439,27 +511,39 @@ const Home: React.FC = () => {
                     marginTop: '24px',
                     height: 'auto',
                     minHeight: '400px',
-                    width: '100%'
+                    width: '100%',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                   }}
                   bodyStyle={{
                     padding: '12px',
                     width: '100%'
+                  }}
+                  headStyle={{
+                    borderBottom: '1px solid #e8e8e8',
+                    fontWeight: 500
                   }}
                 >
                   <List
                     style={{ width: '100%' }}
                     dataSource={Object.entries(renderResult.files || {})}
                     renderItem={([kind, content]) => (
-                      <List.Item style={{ width: '100%' }}>
+                      <List.Item style={{ width: '100%', padding: '8px 0' }}>
                         <Card 
                           title={kind} 
                           style={{ 
                             width: '100%',
-                            marginBottom: 16
+                            marginBottom: 16,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                           }}
                           bodyStyle={{
                             padding: '12px',
                             width: '100%'
+                          }}
+                          headStyle={{
+                            borderBottom: '1px solid #e8e8e8',
+                            fontWeight: 500,
+                            fontSize: '14px',
+                            background: '#fafafa'
                           }}
                         >
                           <div 
@@ -467,18 +551,52 @@ const Home: React.FC = () => {
                             style={{ 
                               height: '400px',
                               width: '100%',
-                              border: '1px solid #d9d9d9',
-                              borderRadius: '2px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '4px',
                               position: 'relative',
-                              overflow: 'hidden'
+                              overflow: 'hidden',
+                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
                             }}
                           >
                             <Editor
                               language="yaml"
                               theme="light"
                               value={content}
-                              onMount={(editor, monaco) => handleEditorDidMount(editor, monaco, renderedEditorContainerRef, 'rendered')}
-                              options={readOnlyEditorOptions}
+                              onMount={(editor, monaco) => {
+                                handleEditorDidMount(editor, monaco, renderedEditorContainerRef, 'rendered');
+                                // 移除编辑器的焦点边框
+                                const editorElement = editor.getDomNode();
+                                if (editorElement) {
+                                  editorElement.style.outline = 'none';
+                                  editorElement.style.border = 'none';
+                                }
+                              }}
+                              options={{
+                                ...readOnlyEditorOptions,
+                                theme: 'vs-light',
+                                fontSize: 13,
+                                lineHeight: 1.5,
+                                fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                                renderLineHighlight: 'none',
+                                scrollbar: {
+                                  vertical: 'visible',
+                                  horizontal: 'visible',
+                                  verticalScrollbarSize: 12,
+                                  horizontalScrollbarSize: 12,
+                                  useShadows: false
+                                },
+                                overviewRulerBorder: false,
+                                hideCursorInOverviewRuler: true,
+                                guides: {
+                                  indentation: false
+                                },
+                                renderWhitespace: "none",
+                                glyphMargin: false,
+                                folding: false,
+                                lineDecorationsWidth: 0,
+                                lineNumbersMinChars: 0,
+                                minimap: { enabled: false }
+                              }}
                               height="100%"
                             />
                           </div>
