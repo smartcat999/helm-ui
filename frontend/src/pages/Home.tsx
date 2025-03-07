@@ -447,18 +447,27 @@ const Home: React.FC = () => {
               {selectedChart && selectedVersion && chartFiles.length > 0 && (
                 <Card
                   title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      height: '24px'
+                    }}>
                       <span>Chart Files</span>
-                      {selectedFiles.length > 0 && (
+                      <div style={{ 
+                        width: '80px',
+                        textAlign: 'right',
+                        visibility: selectedFiles.length > 0 ? 'visible' : 'hidden'
+                      }}>
                         <Button 
                           type="link" 
                           size="small" 
                           onClick={() => setSelectedFiles([])}
                           style={{ padding: 0 }}
                         >
-                          Clear Selection
+                          Clear
                         </Button>
-                      )}
+                      </div>
                     </div>
                   }
                   size="small"
