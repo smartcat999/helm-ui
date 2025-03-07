@@ -36,6 +36,7 @@ func main() {
 	r.POST("/api/charts/dir", handler.UploadChartDir)
 	r.GET("/api/charts", handler.ListCharts)
 	r.GET("/api/charts/:name/versions", handler.ListChartVersions)
+	r.GET("/api/charts/:name/:version/files", handler.ListChartFiles)
 	r.POST("/api/charts/:name/:version/render", handler.RenderChart)
 	r.GET("/api/charts/:name/:version/values", handler.GetChartValues)
 

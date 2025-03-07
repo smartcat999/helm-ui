@@ -37,6 +37,7 @@ interface ChartOption {
 interface RenderOptions {
   name?: string;
   namespace?: string;
+  selectedFiles?: string[];
 }
 
 // 扩展 HTMLInputElement 接口以支持 webkitdirectory 属性
@@ -90,6 +91,8 @@ const Home: React.FC = () => {
   const editorsRef = useRef<Map<string, any>>(new Map());
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
   const resizeObserversRef = useRef<Map<string, ResizeObserver>>(new Map());
+  const [chartFiles, setChartFiles] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
 
   const editorOptions = {
     minimap: { enabled: false },
@@ -204,7 +207,30 @@ const Home: React.FC = () => {
     }
   };
 
-  // 渲染 Chart
+  // 加载 Chart 文件列表
+  const loadChartFiles = async (chartName: string, version: string) => {
+    try {
+      const files = await api.listChartFiles(chartName, version);
+      setChartFiles(files);
+    } catch (error) {
+      message.error('Failed to load chart files');
+      setChartFiles([]);
+    }
+  };
+
+  // 处理文件选择
+  const handleFileSelect = (file: string) => {
+    setSelectedFiles(prev => {
+      const isSelected = prev.includes(file);
+      if (isSelected) {
+        return prev.filter(f => f !== file);
+      } else {
+        return [...prev, file];
+      }
+    });
+  };
+
+  // 修改渲染函数
   const handleRender = async () => {
     if (!selectedChart || !selectedVersion) {
       message.error('Please select a chart and version');
@@ -215,11 +241,13 @@ const Home: React.FC = () => {
       setLoading(true);
       setRenderError(null);
       const parsedValues = yaml.parse(values || '{}');
-      const result = await api.renderChart(selectedChart, selectedVersion, parsedValues, renderOptions);
+      const result = await api.renderChart(selectedChart, selectedVersion, parsedValues, {
+        ...renderOptions,
+        selectedFiles: selectedFiles.length > 0 ? selectedFiles : undefined
+      });
       setRenderResult(result);
     } catch (error: any) {
       setRenderResult(null);
-      // 从错误响应中提取错误信息
       const errorMessage = error.response?.data?.error || error.message || 'Failed to render chart';
       setRenderError(errorMessage);
     } finally {
@@ -326,8 +354,10 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (selectedChart && selectedVersion) {
       loadValues(selectedChart, selectedVersion);
+      loadChartFiles(selectedChart, selectedVersion);
     } else {
       setValues('');
+      setChartFiles([]);
     }
   }, [selectedChart, selectedVersion]);
 
@@ -414,6 +444,70 @@ const Home: React.FC = () => {
                   />
                 </Form.Item>
               </Form>
+              {selectedChart && selectedVersion && chartFiles.length > 0 && (
+                <Card
+                  title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Chart Files</span>
+                      {selectedFiles.length > 0 && (
+                        <Button 
+                          type="link" 
+                          size="small" 
+                          onClick={() => setSelectedFiles([])}
+                          style={{ padding: 0 }}
+                        >
+                          Clear Selection
+                        </Button>
+                      )}
+                    </div>
+                  }
+                  size="small"
+                  bodyStyle={{ 
+                    padding: '8px',
+                    maxHeight: '200px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    border: '1px solid #f0f0f0',
+                    borderRadius: '0 0 4px 4px'
+                  }}
+                >
+                  <div style={{
+                    maxHeight: '184px',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: '4px',
+                    marginRight: '-4px',
+                    position: 'relative'
+                  }}>
+                    <List
+                      size="small"
+                      dataSource={chartFiles}
+                      renderItem={(file, index) => (
+                        <List.Item 
+                          style={{ 
+                            padding: '4px 8px',
+                            borderBottom: index === chartFiles.length - 1 ? 'none' : '1px solid #f0f0f0',
+                            cursor: 'pointer',
+                            backgroundColor: selectedFiles.includes(file) ? '#e6f7ff' : 'transparent'
+                          }}
+                          onClick={() => handleFileSelect(file)}
+                        >
+                          <Space>
+                            <FileOutlined style={{ color: selectedFiles.includes(file) ? '#1890ff' : '#666' }} />
+                            <span style={{ 
+                              fontSize: '12px',
+                              fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                              color: selectedFiles.includes(file) ? '#1890ff' : '#333'
+                            }}>
+                              {file}
+                            </span>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  </div>
+                </Card>
+              )}
               <Button 
                 type="primary" 
                 onClick={handleRender}

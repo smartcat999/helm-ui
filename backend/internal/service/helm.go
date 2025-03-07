@@ -5,11 +5,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/releaseutil"
 )
 
 // HelmService 处理 Helm 相关操作
@@ -154,7 +156,7 @@ func (s *HelmService) GetChartValues(name, version string) (map[string]interface
 }
 
 // RenderChart 渲染 Chart
-func (s *HelmService) RenderChart(name, version string, values map[string]interface{}, releaseName, namespace string) (string, error) {
+func (s *HelmService) RenderChart(name, version string, values map[string]interface{}, releaseName, namespace string, selectedFiles []string) (string, error) {
 	chartPath := filepath.Join(s.chartsDir, fmt.Sprintf("%s-%s.tgz", name, version))
 
 	// 加载 Chart
@@ -169,19 +171,55 @@ func (s *HelmService) RenderChart(name, version string, values map[string]interf
 		return "", fmt.Errorf("failed to init action config: %w", err)
 	}
 
-	// 创建安装动作
-	install := action.NewInstall(actionConfig)
-	install.DryRun = true
-	install.ReleaseName = releaseName
-	install.Namespace = namespace
-	install.Replace = true
-	install.ClientOnly = true
+	// 创建模板动作
+	client := action.NewInstall(actionConfig)
+	client.DryRun = true
+	client.ReleaseName = releaseName
+	client.Namespace = namespace
+	client.Replace = true
+	client.ClientOnly = true
 
 	// 渲染 Chart
-	rel, err := install.Run(chart, values)
+	rel, err := client.Run(chart, values)
 	if err != nil {
 		return "", fmt.Errorf("failed to render chart: %w", err)
 	}
 
+	// 如果指定了文件列表，过滤渲染结果
+	if len(selectedFiles) > 0 {
+		var filteredManifests []string
+		manifests := releaseutil.SplitManifests(rel.Manifest)
+
+		for _, selectedFile := range selectedFiles {
+			for _, manifest := range manifests {
+				// 构建完整的文件路径模式
+				fullPath := fmt.Sprintf("%s/%s", chart.Metadata.Name, selectedFile)
+				if strings.Contains(manifest, fmt.Sprintf("# Source: %s", fullPath)) {
+					filteredManifests = append(filteredManifests, manifest)
+				}
+			}
+		}
+
+		return strings.Join(filteredManifests, "\n---\n"), nil
+	}
+
 	return rel.Manifest, nil
+}
+
+// ListChartFiles 列出指定 Chart 包含的文件
+func (s *HelmService) ListChartFiles(name, version string) ([]string, error) {
+	chartPath := filepath.Join(s.chartsDir, fmt.Sprintf("%s-%s.tgz", name, version))
+
+	// 加载 Chart
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load chart: %w", err)
+	}
+
+	var files []string
+	for _, f := range chart.Raw {
+		files = append(files, f.Name)
+	}
+
+	return files, nil
 }

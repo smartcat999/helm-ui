@@ -79,9 +79,10 @@ func (h *Handler) GetChartValues(c *gin.Context) {
 
 // RenderRequest 定义渲染请求的结构
 type RenderRequest struct {
-	Values    map[string]interface{} `json:"values"`
-	Name      string                 `json:"name"`
-	Namespace string                 `json:"namespace"`
+	Values        map[string]interface{} `json:"values"`
+	Name          string                 `json:"name"`
+	Namespace     string                 `json:"namespace"`
+	SelectedFiles []string               `json:"selectedFiles"`
 }
 
 // RenderChart 渲染 Chart
@@ -106,7 +107,7 @@ func (h *Handler) RenderChart(c *gin.Context) {
 		return
 	}
 
-	result, err := h.helmService.RenderChart(name, version, req.Values, req.Name, req.Namespace)
+	result, err := h.helmService.RenderChart(name, version, req.Values, req.Name, req.Namespace, req.SelectedFiles)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -175,4 +176,18 @@ func (h *Handler) UploadChartDir(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Chart directory uploaded and packaged successfully"})
+}
+
+// ListChartFiles 获取指定 Chart 的文件列表
+func (h *Handler) ListChartFiles(c *gin.Context) {
+	name := c.Param("name")
+	version := c.Param("version")
+
+	files, err := h.helmService.ListChartFiles(name, version)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"files": files})
 }

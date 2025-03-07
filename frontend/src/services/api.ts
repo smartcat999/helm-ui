@@ -23,6 +23,7 @@ export interface ChartInfo {
 export interface RenderOptions {
   name?: string;
   namespace?: string;
+  selectedFiles?: string[];
 }
 
 // 从文件名解析 Chart 信息
@@ -67,6 +68,12 @@ export const api = {
     return response.data.values;
   },
 
+  // 获取 Chart 文件列表
+  listChartFiles: async (chartName: string, version: string) => {
+    const response = await axios.get(`${API_BASE_URL}/charts/${chartName}/${version}/files`);
+    return response.data.files;
+  },
+
   // 渲染 Chart
   renderChart: async (
     chartName: string, 
@@ -79,7 +86,8 @@ export const api = {
       {
         values,
         name: options.name,
-        namespace: options.namespace
+        namespace: options.namespace,
+        selectedFiles: options.selectedFiles || []
       }
     );
     return response.data;
