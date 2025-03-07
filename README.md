@@ -1,6 +1,31 @@
 # Helm UI
 
-一个用于测试和预览 Helm Charts 渲染结果的工具。
+一个用于管理和渲染 Helm Charts 的 Web 界面。
+
+## 构建和运行
+
+### 使用 Docker
+
+1. 构建镜像：
+```bash
+docker build -t helm-ui .
+```
+
+2. 运行容器：
+```bash
+docker run -d -p 8080:8080 -v $(pwd)/charts:/app/charts helm-ui
+```
+
+现在你可以通过访问 http://localhost:8080 来使用 Helm UI。
+
+### 目录挂载说明
+
+- `/app/charts`: Charts 存储目录
+- `/app/temp`: 临时文件目录
+
+### 端口说明
+
+- `8080`: Web 界面和 API 端口
 
 ## 功能特性
 

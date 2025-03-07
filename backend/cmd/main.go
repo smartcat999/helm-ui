@@ -41,5 +41,5 @@ func main() {
 	r.GET("/api/charts/:name/:version/values", handler.GetChartValues)
 
 	// 启动服务器
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":8081", r))
 }
