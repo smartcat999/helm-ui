@@ -523,87 +523,29 @@ const Home: React.FC = () => {
                     fontWeight: 500
                   }}
                 >
-                  <List
-                    style={{ width: '100%' }}
-                    dataSource={Object.entries(renderResult.files || {})}
-                    renderItem={([kind, content]) => (
-                      <List.Item style={{ width: '100%', padding: '8px 0' }}>
-                        <Card 
-                          title={kind} 
-                          style={{ 
-                            width: '100%',
-                            marginBottom: 16,
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                          }}
-                          bodyStyle={{
-                            padding: '12px',
-                            width: '100%'
-                          }}
-                          headStyle={{
-                            borderBottom: '1px solid #e8e8e8',
-                            fontWeight: 500,
-                            fontSize: '14px',
-                            background: '#fafafa'
-                          }}
-                        >
-                          <div 
-                            ref={renderedEditorContainerRef}
-                            style={{ 
-                              height: '400px',
-                              width: '100%',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '4px',
-                              position: 'relative',
-                              overflow: 'hidden',
-                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
-                            }}
-                          >
-                            <Editor
-                              language="yaml"
-                              theme="light"
-                              value={content}
-                              onMount={(editor, monaco) => {
-                                handleEditorDidMount(editor, monaco, renderedEditorContainerRef, 'rendered');
-                                // 移除编辑器的焦点边框
-                                const editorElement = editor.getDomNode();
-                                if (editorElement) {
-                                  editorElement.style.outline = 'none';
-                                  editorElement.style.border = 'none';
-                                }
-                              }}
-                              options={{
-                                ...readOnlyEditorOptions,
-                                theme: 'vs-light',
-                                fontSize: 13,
-                                lineHeight: 1.5,
-                                fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
-                                renderLineHighlight: 'none',
-                                scrollbar: {
-                                  vertical: 'visible',
-                                  horizontal: 'visible',
-                                  verticalScrollbarSize: 12,
-                                  horizontalScrollbarSize: 12,
-                                  useShadows: false
-                                },
-                                overviewRulerBorder: false,
-                                hideCursorInOverviewRuler: true,
-                                guides: {
-                                  indentation: false
-                                },
-                                renderWhitespace: "none",
-                                glyphMargin: false,
-                                folding: false,
-                                lineDecorationsWidth: 0,
-                                lineNumbersMinChars: 0,
-                                minimap: { enabled: false }
-                              }}
-                              height="100%"
-                            />
-                          </div>
-                        </Card>
-                      </List.Item>
-                    )}
-                  />
+                  <div 
+                    ref={renderedEditorContainerRef}
+                    style={{ 
+                      height: '600px',
+                      width: '100%',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <Editor
+                      language="yaml"
+                      theme="vs-light"
+                      value={renderResult.manifests}
+                      onMount={(editor, monaco) => {
+                        handleEditorDidMount(editor, monaco, renderedEditorContainerRef, 'rendered');
+                      }}
+                      options={readOnlyEditorOptions}
+                      height="100%"
+                    />
+                  </div>
                 </Card>
               )}
             </Spin>

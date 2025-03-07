@@ -112,7 +112,7 @@ func (h *Handler) RenderChart(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"files": result})
+	c.JSON(http.StatusOK, gin.H{"manifests": result})
 }
 
 // UploadChartDir 处理 Chart 目录上传

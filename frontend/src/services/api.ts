@@ -12,9 +12,7 @@ export interface ChartValues {
 }
 
 export interface RenderResult {
-  files: {
-    [key: string]: string;
-  };
+  manifests: string;
 }
 
 export interface ChartInfo {

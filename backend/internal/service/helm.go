@@ -5,13 +5,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
-	"sigs.k8s.io/yaml"
 )
 
 // HelmService 处理 Helm 相关操作
@@ -156,19 +154,19 @@ func (s *HelmService) GetChartValues(name, version string) (map[string]interface
 }
 
 // RenderChart 渲染 Chart
-func (s *HelmService) RenderChart(name, version string, values map[string]interface{}, releaseName, namespace string) (map[string]string, error) {
+func (s *HelmService) RenderChart(name, version string, values map[string]interface{}, releaseName, namespace string) (string, error) {
 	chartPath := filepath.Join(s.chartsDir, fmt.Sprintf("%s-%s.tgz", name, version))
 
 	// 加载 Chart
 	chart, err := loader.Load(chartPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load chart: %w", err)
+		return "", fmt.Errorf("failed to load chart: %w", err)
 	}
 
 	// 创建 action 配置
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(s.settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), nil); err != nil {
-		return nil, fmt.Errorf("failed to init action config: %w", err)
+		return "", fmt.Errorf("failed to init action config: %w", err)
 	}
 
 	// 创建安装动作
@@ -182,37 +180,8 @@ func (s *HelmService) RenderChart(name, version string, values map[string]interf
 	// 渲染 Chart
 	rel, err := install.Run(chart, values)
 	if err != nil {
-		return nil, fmt.Errorf("failed to render chart: %w", err)
+		return "", fmt.Errorf("failed to render chart: %w", err)
 	}
 
-	// 将渲染结果转换为 map
-	result := make(map[string]string)
-	manifests := strings.Split(rel.Manifest, "\n---\n")
-	for _, manifest := range manifests {
-		if manifest == "" {
-			continue
-		}
-
-		// 将渲染后的内容解析为 YAML
-		var obj map[string]interface{}
-		if err := yaml.Unmarshal([]byte(manifest), &obj); err != nil {
-			continue
-		}
-
-		// 获取资源类型
-		kind, ok := obj["kind"].(string)
-		if !ok {
-			continue
-		}
-
-		// 将对象转换回 YAML 格式（美化输出）
-		data, err := yaml.Marshal(obj)
-		if err != nil {
-			continue
-		}
-
-		result[kind] = string(data)
-	}
-
-	return result, nil
+	return rel.Manifest, nil
 }
